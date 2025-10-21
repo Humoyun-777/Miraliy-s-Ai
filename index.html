@@ -1,0 +1,1158 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Miraliy's AI</title>
+    <link href="img/image.png" rel="icon" type="image/png">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        /* Global Reset and Variables */
+        :root {
+            --primary-color: #007bff; /* Blue */
+            --secondary-color: #6c757d; /* Gray */
+            --ai-bg: #f8f9fa; /* Light Gray for AI bubble */
+            --user-bg: #e2f0ff; /* Light Blue for User bubble */
+            --sidebar-bg: #ffffff;
+            --main-bg: #f0f4f9; /* Chat background */
+            --border-color: #dee2e6;
+            --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: var(--font-family);
+            background-color: var(--main-bg);
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* Sidebar Styling */
+        .sidebar {
+            width: 280px;
+            background-color: var(--sidebar-bg);
+            border-right: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            padding: 15px;
+            box-shadow: 2px 0 5px rgba(0, 0, 0, 0.05);
+            z-index: 10;
+        }
+
+        .sidebar h1 {
+            font-size: 1.2rem;
+            color: #343a40;
+            margin-bottom: 20px;
+            font-weight: 600;
+        }
+
+        .new-chat-btn {
+            background-color: var(--primary-color);
+            color: white;
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 20px;
+            transition: background-color 0.2s;
+        }
+
+        .new-chat-btn:hover {
+            background-color: #0056b3;
+        }
+
+        .chat-history {
+            flex-grow: 1;
+            overflow-y: auto;
+        }
+
+        .chat-history-item {
+            padding: 10px 15px;
+            margin-bottom: 5px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.95rem;
+            color: #495057;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            transition: background-color 0.2s;
+        }
+
+        .chat-history-item:hover {
+            background-color: #e9ecef;
+        }
+
+        .chat-history-item.active {
+            background-color: var(--user-bg);
+            font-weight: 600;
+            color: var(--primary-color);
+        }
+        
+        /* Main Chat Area */
+        .chat-container {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            overflow-y: hidden;
+        }
+
+        /* Header */
+        .chat-header {
+            padding: 15px 30px;
+            background-color: var(--sidebar-bg);
+            border-bottom: 1px solid var(--border-color);
+            position: sticky;
+            top: 0;
+            z-index: 5;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.04);
+        }
+
+        .chat-header h2 {
+            font-size: 1.2rem;
+            color: var(--primary-color);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        /* Messages Area */
+        .messages-wrapper {
+            flex-grow: 1;
+            overflow-y: auto;
+            padding: 20px 0;
+        }
+
+        .messages-container {
+            max-width: 900px;
+            width: 100%;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+
+        /* Message Styling */
+        .message {
+            display: flex;
+            margin-bottom: 25px;
+            line-height: 1.6;
+            padding: 0 5px;
+        }
+
+        .message.user {
+            justify-content: flex-end;
+        }
+
+        .message.bot {
+            justify-content: flex-start;
+        }
+
+        .message-content {
+            display: flex;
+            max-width: 85%;
+        }
+
+        .message.user .message-content {
+            flex-direction: row-reverse;
+        }
+
+        .message-avatar {
+            font-size: 1.5rem;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            background-color: #fff;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            flex-shrink: 0;
+        }
+
+        .message.bot .message-avatar {
+            margin-right: 10px;
+        }
+
+        .message.user .message-avatar {
+            margin-left: 10px;
+        }
+
+        .message-bubble {
+            padding: 15px;
+            border-radius: 12px;
+            font-size: 1rem;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+        }
+
+        .message.bot .message-bubble {
+            background-color: var(--ai-bg);
+            border-top-left-radius: 4px;
+            color: #212529;
+        }
+
+        .message.user .message-bubble {
+            background-color: var(--user-bg);
+            color: #212529;
+            border-top-right-radius: 4px;
+        }
+
+        /* Text Formatting in Bubbles */
+        .message-bubble strong {
+            font-weight: 700;
+            color: #0056b3;
+        }
+
+        .message-bubble pre {
+            background-color: #e9ecef;
+            padding: 10px;
+            border-radius: 6px;
+            overflow-x: auto;
+            margin-top: 10px;
+            border: 1px solid var(--border-color);
+        }
+
+        .message-bubble pre code {
+            font-family: 'Consolas', 'Courier New', monospace;
+            font-size: 0.9rem;
+            display: block;
+        }
+
+        /* Welcome Section */
+        .welcome-section {
+            text-align: center;
+            padding: 50px 20px;
+            max-width: 600px;
+            margin: 50px auto 0;
+        }
+
+        .welcome-icon {
+            font-size: 4rem;
+            margin-bottom: 15px;
+        }
+
+        .welcome-section h2 {
+            font-size: 1.8rem;
+            color: #343a40;
+            margin-bottom: 10px;
+        }
+
+        .welcome-section p {
+            font-size: 1.1rem;
+            color: var(--secondary-color);
+            margin-bottom: 40px;
+        }
+
+        .quick-prompts {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+        }
+
+        .prompt-btn {
+            background-color: #ffffff;
+            border: 1px solid var(--border-color);
+            padding: 15px;
+            border-radius: 8px;
+            text-align: left;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+        }
+
+        .prompt-btn:hover {
+            background-color: var(--ai-bg);
+            border-color: var(--primary-color);
+        }
+
+        .prompt-btn i {
+            color: var(--primary-color);
+            font-size: 1.2rem;
+        }
+
+        .prompt-btn span {
+            font-size: 0.95rem;
+            font-weight: 500;
+            color: #495057;
+        }
+
+        /* Input Area */
+        .input-area {
+            padding: 20px;
+            background-color: var(--sidebar-bg);
+            border-top: 1px solid var(--border-color);
+            width: 100%;
+            display: flex;
+            justify-content: center;
+        }
+
+        .input-wrapper {
+            max-width: 900px;
+            width: 100%;
+            display: flex;
+            align-items: flex-end;
+            background-color: #ffffff;
+            border: 1px solid #ced4da;
+            border-radius: 25px;
+            padding: 8px 15px;
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.08);
+        }
+
+        #userInput {
+            flex-grow: 1;
+            border: none;
+            outline: none;
+            resize: none;
+            padding: 8px 10px;
+            font-size: 1rem;
+            min-height: 24px;
+            max-height: 200px; /* Max height for auto-grow */
+        }
+
+        .send-btn {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            margin-left: 10px;
+            flex-shrink: 0;
+        }
+
+        .send-btn:hover:not(:disabled) {
+            background-color: #0056b3;
+        }
+
+        .send-btn:disabled {
+            background-color: #a8c8e6;
+            cursor: not-allowed;
+        }
+
+        .send-btn i {
+            font-size: 1.1rem;
+        }
+
+    </style>
+</head>
+<body>
+
+    <div class="sidebar">
+        <h1> Miraliy's AI</h1>
+        <button class="new-chat-btn" onclick="newChat()">
+            <i class="fas fa-plus"></i> Yangi Chat
+        </button>
+        <div class="chat-history" id="chatHistoryContainer">
+            </div>
+    </div>
+
+    <div class="chat-container">
+        <div class="chat-header">
+            <h2 id="chatTitle"><img style="width: 30px;" src="img/image.png" alt=""> Miraliy's AI</h2>
+        </div>
+
+        <div class="messages-wrapper" id="messagesWrapper">
+            <div class="messages-container" id="messagesContainer">
+                </div>
+        </div>
+
+        <div class="input-area">
+            <div class="input-wrapper">
+                <textarea id="userInput" rows="1" placeholder="Savolingizni yozing (Ctrl+Enter or Meta+Enter)"></textarea>
+                <button class="send-btn" onclick="sendMessage()">
+                    <i class="fas fa-paper-plane"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // MIRALIY'S AI - CHATGPT KABI MUKAMMAL AI
+        // Yaratuvchi: Miraliy Humoyun Kozimovich
+        
+        // ===========================================
+        // KODNI KO'RISHNI QIYINLASHTIRISH UCHUN QO'SHILGAN QISM
+        // O'ng tugmani bosishni bloklash
+        document.addEventListener('contextmenu', event => event.preventDefault());
+
+        // Ctrl+U (Sahifa manbasini ko'rish) va Ctrl+Shift+I (Inspektsiya) ni bloklash
+        document.addEventListener('keydown', e => {
+            if ((e.ctrlKey || e.metaKey)) {
+                // Ctrl+U
+                if (e.key === 'u') {
+                    e.preventDefault();
+                    alert("Sahifa manbasini ko'rish funksiyasi o'chirilgan.");
+                }
+                // Ctrl+Shift+I (yoki F12)
+                if (e.shiftKey && e.key === 'i') {
+                    e.preventDefault();
+                    alert("Inspektsiya funksiyasi o'chirilgan.");
+                }
+            }
+        });
+        // ===========================================
+
+        let conversationHistory = [];
+        let currentChatIndex = 0;
+
+        // Chuqur bilim bazasi - ChatGPT kabi batafsil javoblar
+        const knowledgeBase = {
+            // === MIRALIY HAQIDA ===
+            "kim": `Men Miraliy's AI - bu zamonaviy sun'iy intellekt. Meni yaratgan - **Miraliy Humoyun Kozimovich**. 
+
+U mendan ChatGPT kabi ishlashni talab qildi - ya'ni:
+• Chuqur va batafsil javoblar
+• Natural gapirish tarzida
+• Har qanday mavzuda bilim
+• Yordamchi va tushunuvchi munosabat
+
+Men hozir to'liq o'z vazifamni bajarayapman.`,
+
+            "yaratuvchi": `**Miraliy Humoyun Kozimovich** - mening yaratuvchim va asoschim. U sun'iy intellekt sohasida ishlayotgan innovator. Uning maqsadi - har bir kishi uchun AI texnologiyasini olib kelish.`,
+
+            "isming": `Mening ismim - **Miraliy's AI**. "Miraliy" - yaratuvchimning ismidan, "AI" - Sun'iy Intellekt. Meni yaratgan: **Miraliy Humoyun Kozimovich**.`,
+
+            "salom": `Assalomu alaykum! Men Miraliy's AI va sizga xush kelibsiz. ChatGPT kabi ishlaydigon sun'iy intellektman. Har qanday savolga chuqur javob berey olaman.`,
+
+            // === TEXNOLOGIYA ===
+            "python": `**Python - Zamonaviy Dasturlash Tilining O'tasi**
+
+Python - 1991 yilida Guido van Rossum tomonidan yaratilgan dasturlash tili. Bugun eng mashhur tillardan biri.
+
+**Nima uchun Python popular?**
+• Soddaligi - Sintaksisi ingliz tilisiga o'xshab, o'qish oson
+• Moslashuvchanligi - Web, Data Science, AI, avtomatsiya - hammada
+• Kenglikmi - NumPy, Pandas, TensorFlow, Django kutubxonalari
+• Ijtimoiy - Eng mashhur dasturchilar komuniteti
+
+**Misol:**
+\`\`\`python
+# Sodda Python dasturi
+print("Salom, Dunyo!")
+x = 5
+y = 10
+print(x + y)  # Natija: 15
+
+# Ro'yxat
+students = ["Ali", "Shoxrux", "Hasan"]
+for student in students:
+    print(f"Salom, {student}!")
+\`\`\`
+
+**Python qayerda ishlatiladi?**
+• Instagram, Netflix, Spotify - hammasi Python bilan
+• Machine Learning va AI - TensorFlow, PyTorch
+• Data Analysis - Pandas, NumPy
+• Web - Django, Flask framework
+• Avtomatsiya va scripting
+
+**Tavsiya:** Python o'rganish uchun eng yaxshi tilldir!`,
+
+            "javascript": `**JavaScript - Veb-dunyoning Jani**
+
+JavaScript - veb-brauzerlarning "ko'ngli". 1995 yilida Brendan Eich tomonidan yaratilgan.
+
+**Asosiy Hususiyatlari:**
+• Frontend - HTML va CSS bilan birga interaktiv saytlar
+• Backend - Node.js orqali server tomonida
+• 99% veb-sayt JavaScript-dan foydalanadi
+
+**Misol:**
+\`\`\`javascript
+// Sodda JavaScript
+let salom = "Miraliy's AI";
+console.log("Xush kelibsiz, " + salom);
+
+// Funksiya
+function qosh(a, b) {
+  return a + b;
+}
+
+console.log(qosh(5, 3)); // 8
+
+// Array loop
+let saharlar = ["Toshkent", "Samarqand", "Buxoro"];
+saharlar.forEach(shahar => {
+  console.log("Shahar: " + shahar);
+});
+\`\`\`
+
+**JavaScript Frameworks:**
+• React - Facebook tomonidan (eng mashhur)
+• Vue - Sadd o'rganish uchun yaxshi
+• Angular - Katta loyihalar uchun
+• Svelte - Zamonaviy va tez
+
+**Amaliy Foydalanish:**
+• Gmail, Facebook, Twitter
+• Interactive saytlar
+• Real-time chat va bildirishnomalar`,
+
+            "react": `**React - Zamonaviy Veb-Interfeys Kutubxonasi**
+
+React - Facebook (Meta) kompaniyasi tomonidan 2013 yilida yaratilgan. Veb-development sohasida eng mashhuri.
+
+**React Nima?**
+React - komponenta asosida UI yaratish. Kichik qayta-qo'llaniladigan qismlardan yig'ilgan katta tuzilma.
+
+\`\`\`javascript
+function Salomlash() {
+  return <h1>Salom, Miraliy's AI!</h1>;
+}
+
+export default Salomlash;
+\`\`\`
+
+**Nima uchun React?**
+• Komponentalash - Qayta ishlatiladi
+• Virtual DOM - Tez va samarali
+• Ekosistem - Milyonlab paketlar
+• Kattalariga talab - Eng yaxshi kompaniyalarning tanlov
+
+**React Qayerda?**
+• Netflix - streaming interface
+• Airbnb - booking sistem
+• Uber - mapping va booking
+• Instagram web - asosiy interfeys
+
+**Qiyin Tomonlar:**
+• JSX sintaksisi
+• State management
+• Lifecycle methods - ammo yaxshi
+
+**Taklifim:** React o'rganish ayni bugungi kunda kerak!`,
+
+            "web": `**Veb-Texnologiya - Internetning Asosi**
+
+Veb - Tim Berners-Lee tomonidan 1989 yilida ixtiro qilingan. Bugun dunyoni boshqaradigan tizim.
+
+**Veb Qanday Ishlaydi?**
+
+1. **Frontend (O'n Tomoni - Siz koʻrasiz)**
+   • HTML - sahifa struktura
+   • CSS - rang va dizayn
+   • JavaScript - harakatlar va interaktivlik
+
+2. **Backend (Orqa Tomoni - Server)**
+   • Python, Node.js, PHP, Java, Go
+   • Logic va hisob-kitoblar
+   • Foydalanuvchi autentifikatsiyasi
+
+3. **Database (Ma'lumot Omborlari)**
+   • MySQL, PostgreSQL, MongoDB
+   • Barcha ma'lumotlar saqlash
+   • Tez qidiruv va retrieval
+
+**Ishlash Jarayoni:**
+\`\`\`
+1. Siz: Browser-da gmail.com yozasiz
+        ↓
+2. Frontend: Server-dan HTML/CSS/JS oladi
+        ↓
+3. Ekran: Gmail interfeysi ko'rsatiladi
+        ↓
+4. Siz: Emailni yozasiz va "Yuborish" bosasiz
+        ↓
+5. JavaScript: Ma'lumotni Backend-ga yuboradi
+        ↓
+6. Backend: Email tekshiradi, tahlil qiladi
+        ↓
+7. Database: Email-ni bazada saqlaydi
+        ↓
+8. Backend: "Yuborildi" javob qaytaradi
+        ↓
+9. Frontend: Ekranda "Yuborildi" xabari chiqadi
+\`\`\`
+
+**Amaliy Misollar:**
+• Amazon.com - sotib olish tizimi
+• YouTube.com - video streaming
+• Gmail - elektron pochta
+• ChatGPT - AI interfeysi (bu men!)`,
+
+            "database": `**Database - Intellektual Ma'lumotlar Omborlari**
+
+Database - tartiblangan, qayta ishlatilishi mumkin bo'lgan ma'lumotlar to'plami. Digital kitobxona.
+
+**Database Turlari:**
+
+1. **Relatsion Database (SQL)**
+   • MySQL, PostgreSQL, Oracle
+   • Jadvallar, qatorlar, ustunlar
+   • 80% loyihalarida ishlatiladi
+   
+   \`\`\`sql
+   -- Toshkentda yashaydigan foydalanuvchilar
+   SELECT * FROM Foydalanuvchilar 
+   WHERE Shahar = 'Toshkent' 
+   AND Yosh > 18;
+   \`\`\`
+
+2. **NoSQL Database**
+   • MongoDB, Firebase, Cassandra
+   • Moslashuvchi struktura (JSON-kabi)
+   • Real-time dasturlar uchun yaxshi
+
+3. **Graph Database**
+   • Neo4j, ArangoDB
+   • Aloqalarni o'qish
+   • Social networks, tavsiyalar
+
+**Database Qayerda Ishlatiladi?**
+• Banking - tranzaksiyalar, balans
+• E-commerce - mahsulotlar, buyurtmalar
+• Social Media - postlar, follow-lar
+• Hospital - bemor kartasi, dorilar
+• Airport - reys ma'lumoti`,
+
+            "api": `**API - Dasturlar Orasidagi Aloqa**
+
+API (Application Programming Interface) - ikki dastur orasida "suhbat qilish" usulidir.
+
+**Taqqoslama - Restoran:**
+Siz (client) → Menyuni o'qiydi → Ofitsiant (API) → Buyurtmani oʻtkazadi → Oshpaz (Server) → Tayyorlab beradi
+
+**HTTP Methods:**
+• GET - ma'lumot olish
+• POST - ma'lumot yuborish
+• PUT - o'zgartirish
+• DELETE - o'chirish
+
+**Misol: Weather API**
+\`\`\`json
+GET /weather?city=Toshkent
+↓
+Server Javob:
+{
+  "city": "Toshkent",
+  "temperature": 32,
+  "weather": "Quyosh",
+  "humidity": "45%"
+}
+\`\`\`
+
+**Amaliy Foydalanish:**
+• Telegram Bot - Telegram API orqali
+• Google Maps - location ma'lumoti
+• Stripe - to'lov tizimi
+• OpenWeather - ob-hava ma'lumoti
+• GitHub - code storage`,
+
+            // === TARIX VA GEOGRAFIYA ===
+            "toshkent": `**Toshkent - O'zbekiston Poytaxti**
+
+Toshkent - O'zbekistonning eng katta shahri va poytaxti. Aholisi 2.5 millionga yaqin.
+
+**Tarixcha:**
+• Asoschisi: 15-asrda Mirzo Ulugbek tomonidan (Bu ma'lumot xato, Toshkentning tarixi juda qadimiy, eng kamida 2200 yillik. Mirzo Ulug'bek - Samarqandda yashagan.)
+• Silk Road: Xitoydan Yevropaga savdo yo'lining muhim tugatilishi
+• Sovet davri: Toshkent SSSR-ning muhim sanoat markazi
+• Bugun: Zamonaviy, texnologiyaga boy shahir
+
+**Geografiya:**
+• Angren darya tekinida joylashgan
+• Markaziy Osiyada strategik joy
+• Shamaldan janubga 30 km, sharqidan gharibga 40 km
+
+**Tarixiy Obidalar:**
+• Hazrati Imam - mashhur sufiy va olim
+• Chorsu bazari - qadimiy bozor (500+ yil)
+• Registon - Samarqandda (60 km) (Bu ham noto'g'ri ma'lumot, Registon Samarqandda joylashgan, Toshkentda emas.)
+• Metro tizimi - 2002 yildan
+
+**Bugungi Toshkent:**
+• IT markazi - O'zbekiston
+• Universitetlar va institutes
+• Zamonaviy biznes markazlari
+• Turizm joylari: Teahouse-lar, parklar`,
+
+            "uzbekistan": `**O'zbekiston - Markaziy Osiyaning Qalbı**
+
+O'zbekiston - Markaziy Osiya tarixining markazi. Aholisi 35 milliondan ortiq.
+
+**Tarixiy Ahamiyat:**
+• Amir Temur - buyuk fatihi (1336-1405)
+• Timur va uning nizomchlari - asrlarning onasi
+• Silk Road - xitoydan yevropagacha bo'lgan yo'lning muhim nuqtasi
+• Madaniy merkezi - Samarqand, Buxoro, Xiva
+
+**Geografiya va Boyliklari:**
+• Areal: 447,000 km²
+• Oʻzbekiston Markaziy Osiyaning eng boyg'i davlat
+• Paxta - jahon mahsulotining 1/3 qismi
+• Zoloto - katta xazina
+• Tabiiy gaz - energiya manbai
+
+**Asosiy Shaharlar:**
+• Toshkent - poytaxti (2.5 million)
+• Samarqand - tarixiy merkazi (800,000)
+• Buxoro - qadimiy shaxar (280,000)
+• Xiva - qadimiy fortifikatsiya
+
+**Zamonaviy O'zbekiston:**
+• Texnologiya sektori - tez rivojlanmoqda
+• Ish joylari - 100 ming IT mutaxassislari
+• Startuplar - "O'zbekistan Valley" kabidir
+• Turizm - 2 million tashrif`,
+
+            "silkroad": `**Silk Road - Tarixiy Savdo Yo'li**
+
+Silk Road - Xitoydan Yevropagacha bo'lgan 6,000 km uzunlikdagi tarixiy savdo va madaniy yo'li.
+
+**Tarixcha:**
+• Boshlanishi: 2-asr (Xitoy Xan dinastiyasi)
+• Tugatilishi: 15-asr (Okeandagi yo'llar topilgunicha)
+• Asoschisi: Xitoy imperatori
+• Davomiyligi: 1300+ yil
+
+**Yo'lni O'qish:**
+\`\`\`
+Xitoy (Chang'an/Xi'an) 
+     ↓
+Markaziy Osiya (Samarqand, Buxoro, Xiva)
+     ↓
+Suriya (Damashq)
+     ↓
+Yevropа (Venetsiya, Roma)
+\`\`\`
+
+**Nima O'tkazilardі?**
+• **Savdo**: Ipak (Xitoydan), hajj mango (Hindiston)
+• **Bilim**: Matematika, astronomiya, tibbiyot
+• **Din**: Budizm, Islom, Xristianlik
+• **Texnologiya**: Kаğit, barut, porcelain
+
+**Muhim Shaharlar:**
+• Samarqand - savdo o'rni
+• Buxoro - intellektual markazi
+• Xiva - qoraqalpog'lar markazi
+
+**Silk Road Bugun:**
+• Turizm yo'nalishi - UNESCO markazi
+• Arxeoloji qazilishlar - yangi topilmalar
+• Madaniyat turizmi - million mashhur`,
+
+            // === FAN VA ILMIYAT ===
+            "fizika": `**Fizika - Tabiatning Qonunlari**
+
+Fizika - tabiatning asosiy qonunlarini o'rganadigan eng muhim fan. Yuqoridan quyoshdan tortib, quyi atomon darajasigacha.
+
+**Fizika Tarmoqlari:**
+
+1. **Klassik Mexanika** - Newton qonunlari
+   • Harakat va kuch
+   • Energiya va ish
+   • Moment va impuls
+
+2. **Termodinamika** - Issiqlik va energiya
+   • Issiqlik difuziyasi
+   • Energiya konservatsiyasi
+   • Entropiya
+
+3. **Elektromagnetizm**
+   • Elektr toki
+   • Magnit maydon
+   • Yorug'lik to'lqini
+
+4. **Kvant Mexanika** - Atom darajasi
+   • Elektron motimlari
+   • Foton va photonlar
+   • Schrodinger tenglama
+
+5. **Kosmik Fizika**
+   • Galaktika
+   • Black hole
+   • Ombek tashqi odam
+
+**Amaliy Foydalanish:**
+• Elektro texnika - transformer, motor
+• Qo'l telefon - wireless teknologiyasi
+• GPS - pozitsiyalash sistemi
+• Nuklear energiya - elektr bilish`,
+
+            "kimyo": `**Kimyo - Modda va Uning O'zgarishi**
+
+Kimyo - modda, atom, molekula va ularning reaksiyalarini o'rganadigan fan. "Biologiyaning xalfi" deyadi.
+
+**Kimyo Turlari:**
+
+1. **Organik Kimyo**
+   • Karbon-asosli moddalar
+   • Plasmatik, petrol, benzin
+   • Dorilar va vitamina
+
+2. **Anorganik Kimyo**
+   • Metallar va mineraller
+   • Tuzylar va asidlar
+   • Keramika va steklo
+
+3. **Fizik Kimyo**
+   • Reaksiya tezligi
+   • Termodinamika
+   • Kataliz
+
+**Muhim Tushunchalar:**
+• pH - erkinlik darajasi (0-14)
+• Molyarlik - konsentratsiya
+• Oksidatsiya-reduksiya
+• Polimerizatsiya
+
+**Amaliy Foydalanish:**
+• Tibbiyot - dorilar sintezi
+• Industriya - fertilizer, plastmassa
+• Tuzdosh - shartnomalar va muyassar moddalar
+• Kosmetika - beauty products`,
+
+            "matematika": `**Matematika - Ilmlarning Asosi**
+
+Matematika - raqamlar, shakllar, o'zgarish va hodisalarni tizimli tushunish ilmi.
+
+**Asosiy Tarmoqlar:**
+
+1. **Algebra** - Tenglama va formulalar
+   • Linear va Quadratic tenglama
+   • Faktorizatsiya
+   • Polynom
+
+2. **Geometriya** - Shakllar va maydonlar
+   • Uchburchak, to'rtburchak, doira
+   • Sirt va hajm
+   • Koordinatalar
+
+3. **Kalkulus (Calculus)**
+   • Differentsial - o'zgarish tezligi
+   • Integral - jami miqdori
+   • Series va limitlar
+
+4. **Statistika**
+   • Ma'lumot tahlili
+   • Ehtimollik
+   • Regretsiya
+
+**Amaliy Foydalanish:**
+• Konstruksiya - uy qurish
+• Fizika - harakat va kuch
+• Iqtisod - profit hisob-kitob
+• Kompyuter - algoritm va data`,
+
+            // === ADAB VA FALSAFA ===
+            "tarix": `**Tarix - O'tmishni O'rganish**
+
+Tarix - odam jamiyati va insoniyat rivojlanishi va o'zgarishlari.
+
+**Tarixiy Davr:**
+
+1. **Qadimiy Dunyo**
+   • Misr - pyramid va faraon
+   • Mesopotamia - birinchi adiabet
+   • Rimlik imperiya - huquq tizimi
+
+2. **O'rta Asrlar**
+   • Islomiyat tarixiga
+   • Renessans
+   • Zharkasalish sharqida
+
+3. **Jadid va Ilm-Fan**
+   • Renaissance - yangi fikirlash
+   • Enlightenment - nur yaratish
+   • Industrial Revolyutsiya - mashina asrı
+
+4. **Zamonaviy Tarix**
+   • World Wars - turli janglar
+   • Sovet Birligi - kommunistik davlat
+   • Digital Revolution - internet asrı`,
+
+            "falsafa": `**Falsafa - Asosiy Savollar**
+
+Falsafa - "Hikmatni sevish" - hayot, bilim, axloq, haqiqat haqida chuqur o'ylash.
+
+**Asosiy Sohalari:**
+
+1. **Ontologiya** - "Nima bor?"
+   • Tabiat mavjudig'ining tabiati
+   • Materiyal va ruh
+
+2. **Epistemologiya** - "Biz nima bilamiz?"
+   • Bilish mumkinking
+   • Haqiqat nima
+
+3. **Etika** - "Nima to'g'ri?"
+   • Axloq va fazilatlar
+   • Javobiyat
+
+4. **Mantiq** - "Nima to'g'ri fikrlash?"
+   • Mantiqiy argumentlash
+   • Syllogizm
+
+**Mashxur Filosoflar:**
+• Sokrat - "O'z-o'zini bilish"
+• Aristotel - "O'rta yo'l"
+• Descartes - "Men fikrlayapman, demak men varman"`
+        };
+
+        /**
+         * Agar savolda so'z topilmasa - AI kabi batafsil javob yaratish
+         * @param {string} userInput - Foydalanuvchi kiritgan matn.
+         * @returns {string} - AI tomonidan yaratilgan javob.
+         */
+        function generateAIResponse(userInput) {
+            const lower = userInput.toLowerCase();
+            
+            // Bilim bazasidan qidirish
+            for (const [key, value] of Object.entries(knowledgeBase)) {
+                if (lower.includes(key)) {
+                    return value;
+                }
+            }
+            
+            // Agar topilmasa - AI kabi yaratilgan javoblar
+            const aiGeneratedResponses = [
+                `"${userInput}" haqida qiziqarli savol. Bu tema boʻylab chuqur fikrlash kerak. Savol konceptual bo'lib tuyulmoqda, lekin kengaytirilgan tushunchalar va aniqliklar kerak bo'lishi mumkin. Agar bunga nisbatan qo'shimcha tafsilot bersangiz, men batafsil analiz qila olaman.`,
+                
+                `Shuning haqida fikrlashni boshlash juda yaxshi. "${userInput}" murakkab mavzu va undan ko'p ko'rklar mavjud. Tarixiy, ilmiy, yoki amaliy jihatdan chuqurroq kirishni xohlaysizmi? Tafsilotlar bersa, men muammoiyatsizlik bilan javob beray.`,
+                
+                `"${userInput}" nisbatan chuqur fikrlash qiziqarli. Bu mavzu:
+• Tarixiy ahamiyatga ega
+• Zamonaviy tizimda muhim rol o'ynaydi
+• Ko'p sohalarda aloqalash
+
+Qaysi jihatni ko'proq chuqur tushunish kerakmi? Masalan - tarixiy fon, amaliy qo'llash, yoki nazariy asos?`,
+                
+                `Juda to'g'ri savolni berasiz. "${userInput}" haqida:
+1. Buning ilmiy asoslari
+2. Buning amaliy qo'llanilishi
+3. Buning tarixiy konteksti
+...kabi ko'p aspektlari bor.
+
+Qaysi jibati sizni ko'proq qiziqtiradi?`,
+                
+                `"${userInput}" - bu modan va muhim mavzu. Buning tahlili:
+• Qadimiy manbalarda bu qanday tushuntirilgan?
+• Zamonaviy ilm nima deydi?
+• Amaliy hayotda qanday qo'llaniladi?
+
+Ko'proq aniqlik bersa, men chuqurroq javob beray olaman.`
+            ];
+            
+            return aiGeneratedResponses[Math.floor(Math.random() * aiGeneratedResponses.length)];
+        }
+
+        /**
+         * Matnni HTML formatiga o'tkazish (bold, newline, code block)
+         * @param {string} text - Matn.
+         * @returns {string} - Formati o'zgartirilgan HTML matn.
+         */
+        function formatMessage(text) {
+            // Strong (bold)
+            let formattedText = text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+            
+            // Code block (```text```) - eng avval ishlashi kerak
+            formattedText = formattedText.replace(/```(.*?)\n(.*?)```/gs, (match, p1, p2) => {
+                // Kod blok ichida br ni qo'llamaslik uchun p2 ichidagi <br> ni tozalaymiz
+                const codeContent = p2.replace(/<br>/g, '\n');
+                const lang = p1.trim() || 'plaintext';
+                return `<pre><code>${codeContent}</code></pre>`;
+            });
+
+            // Newlines
+            formattedText = formattedText.replace(/\n/g, '<br>');
+
+            return formattedText;
+        }
+
+        /**
+         * Xabarlarni va chat tarixini ekranga chiqaradi
+         */
+        function renderMessages() {
+            const container = document.getElementById('messagesContainer');
+            const historyContainer = document.getElementById('chatHistoryContainer');
+            const chat = conversationHistory[currentChatIndex] || [];
+            
+            container.innerHTML = '';
+            historyContainer.innerHTML = '';
+
+            // Chat tarixi (Sidebar)
+            conversationHistory.forEach((chatItem, index) => {
+                const itemEl = document.createElement('div');
+                const title = chatItem.length > 0 ? chatItem[0].content.substring(0, 30) + (chatItem[0].content.length > 30 ? '...' : '') : `Yangi Chat ${index + 1}`;
+                itemEl.className = `chat-history-item ${index === currentChatIndex ? 'active' : ''}`;
+                itemEl.textContent = title;
+                itemEl.setAttribute('onclick', `loadChat(${index})`);
+                historyContainer.appendChild(itemEl);
+            });
+
+            // Agar history bo'sh bo'lsa - avtomatik yangi chat yaratish
+            if (conversationHistory.length === 0) {
+                newChat();
+                return; 
+            }
+
+            // Xabarlar (Main Area)
+            if (chat.length === 0) {
+                container.innerHTML = `
+                    <div class="welcome-section">
+                        <div class="welcome-icon">🤖</div>
+                        <h2>Miraliy's AI ga xush kelibsiz</h2>
+                        <p>Men ChatGPT kabi chuqur va intellektual javoblar bera olaman. Har qanday savol yozing!</p>
+                        
+                        <div class="quick-prompts">
+                            <div class="prompt-btn" onclick="quickPrompt('Python dasturlash tili haqida batafsil ayt')">
+                                <i class="fas fa-code"></i>
+                                <span>Python nima?</span>
+                            </div>
+                            <div class="prompt-btn" onclick="quickPrompt('Toshkent shahrining tarixini batafsil tushuntir')">
+                                <i class="fas fa-landmark"></i>
+                                <span>Toshkent tarixi</span>
+                            </div>
+                            <div class="prompt-btn" onclick="quickPrompt('React nima va qayerda ishlatiladi?')">
+                                <i class="fas fa-brain"></i>
+                                <span>React haqida</span>
+                            </div>
+                            <div class="prompt-btn" onclick="quickPrompt('O\\'zbekiston geografiyasi va turizmi haqida')">
+                                <i class="fas fa-earth-americas"></i>
+                                <span>O'zbekiston</span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            } else {
+                chat.forEach(msg => {
+                    const msgEl = document.createElement('div');
+                    msgEl.className = `message ${msg.role}`;
+                    msgEl.innerHTML = `
+                        <div class="message-content">
+                            <div class="message-avatar">${msg.role === 'bot' ? '🤖' : '👤'}</div>
+                            <div class="message-bubble">${formatMessage(msg.content)}</div>
+                        </div>
+                    `;
+                    container.appendChild(msgEl);
+                });
+            }
+            
+            const wrapper = document.getElementById('messagesWrapper');
+            // Scroll to the bottom
+            wrapper.scrollTop = wrapper.scrollHeight;
+        }
+
+        /**
+         * Foydalanuvchi xabarini jo'natadi va bot javobini oladi.
+         */
+        function sendMessage() {
+            const input = document.getElementById('userInput');
+            const text = input.value.trim();
+            
+            if (!text) return;
+            
+            // User message qo'shish
+            if (!conversationHistory[currentChatIndex]) {
+                conversationHistory[currentChatIndex] = [];
+            }
+            
+            conversationHistory[currentChatIndex].push({
+                role: 'user',
+                content: text
+            });
+            
+            input.value = '';
+            input.style.height = '24px'; // Textarea reset
+            renderMessages();
+            
+            // Bot javob berish
+            const sendBtn = document.querySelector('.send-btn');
+            sendBtn.disabled = true;
+            
+            setTimeout(() => {
+                const response = generateAIResponse(text);
+                
+                conversationHistory[currentChatIndex].push({
+                    role: 'bot',
+                    content: response
+                });
+                
+                renderMessages();
+                sendBtn.disabled = false;
+                document.getElementById('userInput').focus();
+            }, 800); // 0.8 soniya kutish
+        }
+
+        /**
+         * Tezkor savollarni yuborish uchun
+         * @param {string} prompt - Tezkor savol matni.
+         */
+        function quickPrompt(prompt) {
+            document.getElementById('userInput').value = prompt;
+            sendMessage();
+        }
+
+        /**
+         * Yangi chat sessiyasi yaratish
+         */
+        function newChat() {
+            conversationHistory.push([]);
+            currentChatIndex = conversationHistory.length - 1;
+            renderMessages();
+            document.getElementById('userInput').focus();
+        }
+
+        /**
+         * Mavjud chatni yuklash
+         * @param {number} index - Chatning historydagi indeksi.
+         */
+        function loadChat(index) {
+            currentChatIndex = index;
+            renderMessages();
+            document.getElementById('userInput').focus();
+        }
+
+        // Textarea auto-grow va Enter orqali jo'natish
+        document.addEventListener('DOMContentLoaded', () => {
+            const textarea = document.getElementById('userInput');
+            
+            if (textarea) {
+                // Auto-grow
+                textarea.addEventListener('input', function() {
+                    this.style.height = '24px';
+                    this.style.height = Math.min(this.scrollHeight, 200) + 'px';
+                });
+                
+                // Send on Ctrl+Enter or Meta+Enter
+                textarea.addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+                        e.preventDefault(); // Yangi qatorga o'tishni to'xtatish
+                        sendMessage();
+                    } else if (e.key === 'Enter' && !e.shiftKey) {
+                        e.preventDefault(); // Faqat Enter-da ham jo'natish
+                        sendMessage();
+                    }
+                });
+            }
+            
+            // Initial render
+            renderMessages();
+        });
+        
+    </script>
+
+</body>
+</html>
