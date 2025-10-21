@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Miraliy's AI</title>
-    <link href="img/image.png" rel="icon" type="image/png">
+    <link  rel="icon" type="image/x-icon" href="img/image.png">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <style>
         /* Global Reset and Variables */
@@ -354,6 +354,39 @@
             font-size: 1.1rem;
         }
 
+        /* --- MOBIL MOSLASHUV QO'SHILDI (768px dan kichik ekranlar uchun) --- */
+        @media (max-width: 768px) {
+            .sidebar {
+                width: 0;
+                padding: 0;
+                overflow: hidden;
+                position: absolute; 
+                height: 100vh;
+                transform: translateX(-100%); 
+                transition: transform 0.3s ease-in-out;
+            }
+
+            .sidebar.active {
+                width: 250px;
+                padding: 15px;
+                transform: translateX(0);
+                box-shadow: 5px 0 10px rgba(0, 0, 0, 0.2);
+            }
+
+            .chat-container {
+                width: 100vw;
+            }
+
+            .messages-container {
+                padding: 0 10px; 
+            }
+
+            #menuToggle {
+                display: block !important; 
+            }
+        }
+        /* ----------------------------------------------------------------- */
+
     </style>
 </head>
 <body>
@@ -369,7 +402,12 @@
 
     <div class="chat-container">
         <div class="chat-header">
-            <h2 id="chatTitle"><img style="width: 30px;" src="img/image.png" alt=""> Miraliy's AI</h2>
+            <h2 id="chatTitle">
+                <button id="menuToggle" onclick="toggleSidebar()" style="display: none; background: none; border: none; font-size: 1.2rem; cursor: pointer; margin-right: 10px; color: var(--primary-color);">
+                    <i class="fas fa-bars"></i>
+                </button>
+                <img style="width: 25px;" src="img/image.png" alt="Yangi Logo"> Miraliy's AI
+            </h2>
         </div>
 
         <div class="messages-wrapper" id="messagesWrapper">
@@ -980,6 +1018,14 @@ Ko'proq aniqlik bersa, men chuqurroq javob beray olaman.`
 
             return formattedText;
         }
+        
+        /**
+         * Mobil menyuni (sidebar) ochish/yopish funksiyasi
+         */
+        function toggleSidebar() {
+            const sidebar = document.querySelector('.sidebar');
+            sidebar.classList.toggle('active');
+        }
 
         /**
          * Xabarlarni va chat tarixini ekranga chiqaradi
@@ -1040,9 +1086,15 @@ Ko'proq aniqlik bersa, men chuqurroq javob beray olaman.`
                 chat.forEach(msg => {
                     const msgEl = document.createElement('div');
                     msgEl.className = `message ${msg.role}`;
+                    
+                    // Bot avatari rasmga almashtirildi (image_b32d3b.png)
+                    const avatarContent = msg.role === 'bot' 
+                        ? '<img src="img/image.png" alt="Bot Logo" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover;">' 
+                        : '👤';
+                    
                     msgEl.innerHTML = `
                         <div class="message-content">
-                            <div class="message-avatar">${msg.role === 'bot' ? '🤖' : '👤'}</div>
+                            <div class="message-avatar">${avatarContent}</div>
                             <div class="message-bubble">${formatMessage(msg.content)}</div>
                         </div>
                     `;
@@ -1123,11 +1175,17 @@ Ko'proq aniqlik bersa, men chuqurroq javob beray olaman.`
             currentChatIndex = index;
             renderMessages();
             document.getElementById('userInput').focus();
+
+            // Mobil ekranda chat tanlanganda menyuni yopish
+            if (window.innerWidth <= 768) {
+                toggleSidebar();
+            }
         }
 
         // Textarea auto-grow va Enter orqali jo'natish
         document.addEventListener('DOMContentLoaded', () => {
             const textarea = document.getElementById('userInput');
+            const menuToggle = document.getElementById('menuToggle');
             
             if (textarea) {
                 // Auto-grow
@@ -1148,6 +1206,21 @@ Ko'proq aniqlik bersa, men chuqurroq javob beray olaman.`
                 });
             }
             
+            // Mobil ekran uchun tugmani ko'rsatish
+            if (window.innerWidth <= 768) {
+                if (menuToggle) {
+                    menuToggle.style.display = 'block';
+                }
+                
+                // Asosiy chat maydonini bosganda menyuni yopish
+                document.querySelector('.chat-container').addEventListener('click', () => {
+                    const sidebar = document.querySelector('.sidebar');
+                    if (sidebar.classList.contains('active')) {
+                        toggleSidebar();
+                    }
+                });
+            }
+
             // Initial render
             renderMessages();
         });
